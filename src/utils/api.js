@@ -1,18 +1,31 @@
-export async function runSkill({ apiKey, prompt, onChunk }) {
+export async function runSkill({ apiKey, systemPrompt, userContent, onChunk }) {
+  const body = {
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4096,
+    stream: true,
+    messages: [{ role: 'user', content: userContent }],
+  };
+
+  if (systemPrompt) {
+    body.system = [
+      {
+        type: 'text',
+        text: systemPrompt,
+        cache_control: { type: 'ephemeral' },
+      },
+    ];
+  }
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'prompt-caching-2024-07-31',
       'anthropic-dangerous-direct-browser-access': 'true',
     },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      stream: true,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -42,6 +55,7 @@ export async function runSkill({ apiKey, prompt, onChunk }) {
       } catch {}
     }
   }
+
   return fullText;
 }
 
@@ -63,8 +77,17 @@ ${orgConfig.additionalContext ? `- Additional context: ${orgConfig.additionalCon
     ? `Reference Documents:\n${documentContext}`
     : '';
 
-  return prompt
-    .replace('{{ORG_CONTEXT}}', orgBlock)
-    .replace('{{DOCUMENT_CONTEXT}}', docBlock)
-    .replace('{{USER_INPUT}}', userInput);
+  // Cacheable system content: org context + documents
+  // These are stable and repeated across calls — caching makes them 90% cheaper
+  // and they won't count toward your rate limit after the first call
+  const systemPrompt = [orgBlock, docBlock].filter(Boolean).join('\n\n');
+
+  // User content: skill prompt + user input (changes every call, not cached)
+  const userContent = prompt
+    .replace('{{ORG_CONTEXT}}', '')
+    .replace('{{DOCUMENT_CONTEXT}}', '')
+    .replace('{{USER_INPUT}}', userInput)
+    .trim();
+
+  return { systemPrompt, userContent };
 }
