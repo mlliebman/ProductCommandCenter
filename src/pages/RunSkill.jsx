@@ -66,7 +66,7 @@ export default function RunSkill() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [refineInput, setRefineInput] = useState('');
   const [currentOutputId, setCurrentOutputId] = useState(null);
-  const [history, setHistory] = useState([]); // for refinement conversation
+  const [history, setHistory] = useState([]);
 
   if (!skill) return <div className="card"><p>Skill not found.</p></div>;
 
@@ -81,10 +81,12 @@ export default function RunSkill() {
     setError('');
 
     try {
-      let prompt;
+      let systemPrompt = '';
+      let userContent = '';
+
       if (isRefinement && refineInput.trim()) {
-        // Build refinement prompt preserving context
-        prompt = `You previously produced this output:
+        // Refinement: no system prompt needed, just the refinement instruction
+        userContent = `You previously produced this output:
 
 ${result}
 
@@ -93,20 +95,22 @@ ${refineInput}
 
 Please produce an improved version of the full output incorporating this feedback. Maintain the same markdown structure.`;
       } else {
-        prompt = buildPrompt({
+        // Normal run: use new buildPrompt which returns { systemPrompt, userContent }
+        ({ systemPrompt, userContent } = buildPrompt({
           skill,
           userInput,
           orgConfig,
           documentContext: docContext,
           promptOverride,
-        });
+        }));
         setHistory([]);
       }
 
       let fullText = '';
       const output = await runSkill({
         apiKey,
-        prompt,
+        systemPrompt,
+        userContent,
         onChunk: (text) => {
           fullText = text;
           setResult(text);
