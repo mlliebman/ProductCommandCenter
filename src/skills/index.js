@@ -555,7 +555,142 @@ Specific recognition — what they did, why it mattered.
 ## Carry Forward
 Items from previous retros still open.`,
   },
-];
+  {
+    id: 'strategy-deck',
+    tag: '/strategy-deck',
+    name: 'Strategy Deck Builder',
+    category: 'Strategy',
+    framework: 'Minto Pyramid · SCR · Declarative Narrative',
+    timeSaved: '2–3 days → 1 hr',
+    color: '#0F4C75',
+    description: 'Builds a full product strategy deck with declarative slide titles, honest tension, named competitors, and a vision crescendo. Works at early stage — designed to be specific without guessing.',
+    inputLabel: 'Company, Product, Strategic Challenge',
+    inputPlaceholder: `Company/product: [describe what it is and what it does today]
+Current customers: [who uses it now, rough scale]
+The opportunity: [what market or segment you want to capture]
+The challenge: [what's standing in the way — be honest]
+Key competitors: [named, specific]
+Strategic options you're considering: [list them, even rough]
+What you DON'T know yet: [TAM, pricing, build cost — list gaps explicitly]
+Any data points you have: [even rough numbers, named customers, deals, signals]`,
+    inputType: 'textarea',
+    prompt: `You are a product strategist building a board-quality strategy presentation. Your primary references are the narrative structure and slide-title style of the best product strategy decks — where every title is a declarative argument, not a topic label.
+
+{{ORG_CONTEXT}}
+
+{{DOCUMENT_CONTEXT}}
+
+Input:
+{{USER_INPUT}}
+
+## CRITICAL STYLE RULES — READ BEFORE PRODUCING ANY OUTPUT
+
+**Slide titles must be declarative statements, not topic labels.**
+
+Bad: "Market Opportunity"
+Good: "There is an untapped mid-market opportunity concentrated in 200,000 hotels not yet on the platform"
+
+Bad: "Competitive Landscape"
+Good: "Cloud PMS vendors are commoditizing the integration layer — and that changes the strategic equation"
+
+Bad: "Strategic Options"
+Good: "To combat these threats and win in mid-market, it requires a multi-pronged strategy"
+
+Bad: "Vision"
+Good: "The data moat is already built. The question is whether we claim the intelligence opportunity before someone else does."
+
+**Tension must be explicit in titles.** Use "but," "however," "yet," "while," and "to combat" to show the logical hinge between sections.
+
+**Specificity beats completeness.** Named companies, actual numbers (even rough), and real examples are more persuasive than comprehensive vagueness. If you don't know a number, say so honestly and note what would need to be true.
+
+**Be honest about headwinds.** The deck must include a slide that names the real barriers to the opportunity — not softened, not buried. Credibility comes from acknowledging what's hard.
+
+**The story arc must build to a crescendo.** The final vision slide should feel earned — not announced at the start.
+
+---
+
+## PRODUCE THE FOLLOWING OUTPUT
+
+### PART 1: STORY SPINE
+Before any slides, write a 5–7 sentence narrative arc for the deck. This is the logic thread every slide must serve. Format:
+
+**Situation:** [what is undeniably true today]
+**Complication:** [what's changed or what's at risk]
+**Question:** [the strategic question this deck answers]
+**Answer:** [the thesis, stated plainly]
+**Implication:** [what must be true / built / decided]
+
+---
+
+### PART 2: SLIDE-BY-SLIDE OUTLINE
+
+For each slide produce:
+- **SLIDE [N]: [DECLARATIVE TITLE IN FULL]**
+- *Narrative purpose:* [one sentence — what job this slide does in the story arc]
+- *Content:* [the actual content — tables, lists, specific language, named examples, frameworks]
+- *Data needed:* [flag explicitly if a number or claim needs validation — never invent, never omit gaps]
+
+Produce slides in this sequence. Adapt headings to fit the specific context — don't use generic labels:
+
+**ACT 1 — CURRENT STATE & CREDIBILITY**
+- Slide 1: Cover. Company name, strategic subtitle, author, date. Subtitle should be a declarative strategic statement, not a description.
+- Slide 2: Context caveat. Be honest about what this analysis is based on and what it is not. This builds credibility by naming its own limits.
+- Slide 3: What the company is today. Use the "What [Company] Does / What [Company] Does Not Do (Yet)" structure. Include key scale metrics even if rough.
+
+**ACT 2 — THE OPPORTUNITY & THE TENSION**
+- Slide 4: The untapped opportunity. Name it precisely — specific segment, scale estimate if available. State what's currently missing.
+- Slide 5: The headwinds. Name the real barriers honestly. This is the "but" slide. Do not soften.
+- Slide 6: The competitive threat. Name specific competitors. State what they're doing and what it means. Include: where [company] still wins.
+
+**ACT 3 — THE STRATEGIC RESPONSE**
+- Slide 7: The multi-pronged strategy. Numbered pillars (01–06). Each pillar = 2-line description. Title should be "To [do X], it requires a multi-pronged strategy."
+- Slides 8–12 (or fewer): One slide per strategic pillar. Each includes: the insight that makes it work, the value propositions (specific, outcome-framed, not feature-framed), what it requires.
+
+**ACT 4 — WHO WE SERVE**
+- Segment slide: Use this exact table structure for each segment:
+  | Field | Content |
+  |-------|---------|
+  | WHO | Named company types or specific examples |
+  | NEED | The specific pain — not generic |
+  | VALUE | What changes for them — outcome, not feature |
+  | SCALE | Rough deal/revenue/property count — even estimated |
+
+**ACT 5 — THE GAP / THE INTELLIGENCE OPPORTUNITY**
+- Gap analysis slide: For each segment, show WHAT WE DELIVER TODAY vs. WHAT'S MISSING. Title should name the gap type ("The gaps are not X gaps, they are Y gaps").
+- Platform/vision concept slide: Name 2–4 distinct capability platforms. Each gets: what it activates, KPIs it moves, who it serves.
+
+**ACT 6 — BUILD & GO-TO-MARKET**
+- Feasibility/readiness slide: What's ready now vs. what requires investment. Use Tier 1 / Tier 2 / Tier 3 or equivalent framework.
+- Roadmap: Near-term / Medium-term / Long-term. Each item tagged to strategic pillar.
+- GTM & monetization: Table with PRODUCT TIER / TARGET BUYER / PRICING MODEL / ENTRY PRICE / STRATEGIC VALUE.
+
+**ACT 7 — THE VISION CRESCENDO**
+- Final slide: This is not a summary. It's a statement of what becomes possible. End with a single crisp question or imperative that creates urgency. The moat, the window, the decision.
+
+---
+
+### PART 3: DATA GAPS REGISTER
+
+Produce a table of everything that would strengthen the deck but is currently estimated or unknown:
+
+| Claim | Current Status | What's Needed | Where to Get It |
+|-------|---------------|---------------|-----------------|
+| TAM estimate | Not available | Total addressable hotels × ARPU | Industry reports, comparable SaaS multiples |
+| ... | ... | ... | ... |
+
+Note: Missing data does not weaken the deck if the gaps are named honestly. A gap register is a sign of rigor, not incompleteness.
+
+---
+
+### PART 4: FIVE TITLE REWRITES
+
+Take any 5 of the slide titles you produced and show the weak version vs. the strong version to illustrate the declarative principle:
+
+| Weak (topic label) | Strong (declarative argument) |
+|--------------------|-------------------------------|
+| ... | ... |`,
+  },
+]
 
 export const CATEGORIES = ['Discovery', 'Strategy', 'Planning', 'Launch', 'Communication', 'Operations'];
 
