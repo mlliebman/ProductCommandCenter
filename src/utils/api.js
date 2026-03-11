@@ -1,16 +1,22 @@
 export async function runSkill({ apiKey, systemPrompt, userContent, onChunk }) {
+  // Guard: userContent must never be empty
+  if (!userContent || !userContent.trim()) {
+    throw new Error('No content to send. Please enter some input and try again.');
+  }
+
   const body = {
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
     stream: true,
-    messages: [{ role: 'user', content: userContent }],
+    messages: [{ role: 'user', content: userContent.trim() }],
   };
 
-  if (systemPrompt) {
+  // Only add system prompt if it has actual content
+  if (systemPrompt && systemPrompt.trim()) {
     body.system = [
       {
         type: 'text',
-        text: systemPrompt,
+        text: systemPrompt.trim(),
         cache_control: { type: 'ephemeral' },
       },
     ];
@@ -73,21 +79,35 @@ export function buildPrompt({ skill, userInput, orgConfig, documentContext, prom
 ${orgConfig.additionalContext ? `- Additional context: ${orgConfig.additionalContext}` : ''}`
     : '';
 
-  const docBlock = documentContext
-    ? `Reference Documents:\n${documentContext}`
+  // Cap document size to ~20,000 tokens (80,000 chars) to prevent rate limit errors
+  const MAX_CHARS = 80000;
+  const truncatedDoc = documentContext && documentContext.length > MAX_CHARS
+    ? documentContext.slice(0, MAX_CHARS) + '\n\n[Document truncated to fit token limit]'
+    : documentContext;
+
+  const docBlock = truncatedDoc
+    ? `Reference Documents:\n${truncatedDoc}`
     : '';
 
-  // Cacheable system content: org context + documents
-  // These are stable and repeated across calls — caching makes them 90% cheaper
-  // and they won't count toward your rate limit after the first call
+  // System prompt: org context + documents (stable, cached after first use)
   const systemPrompt = [orgBlock, docBlock].filter(Boolean).join('\n\n');
 
-  // User content: skill prompt + user input (changes every call, not cached)
-  const userContent = prompt
+  // User content: skill instructions + user input
+  let userContent = prompt
     .replace('{{ORG_CONTEXT}}', '')
     .replace('{{DOCUMENT_CONTEXT}}', '')
-    .replace('{{USER_INPUT}}', userInput)
+    .replace('{{USER_INPUT}}', userInput || '')
+    .replace(/\n{3,}/g, '\n\n') // collapse blank lines left by placeholder removal
     .trim();
+
+  // Safety fallback: if userContent is somehow empty, rebuild it with everything
+  if (!userContent) {
+    userContent = [
+      orgBlock,
+      docBlock,
+      `Input: ${userInput || ''}`
+    ].filter(Boolean).join('\n\n');
+  }
 
   return { systemPrompt, userContent };
 }
