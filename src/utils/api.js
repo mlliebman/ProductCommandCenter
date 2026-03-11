@@ -1,5 +1,6 @@
+// ── Generate clarifying questions ─────────────────────────────────
 export async function generateQuestions({ apiKey, skill, userInput, orgConfig }) {
-  const orgBlock = orgConfig?.companyName
+  const orgSummary = orgConfig?.companyName
     ? `Organization: ${orgConfig.companyName}, Product: ${orgConfig.productName || 'unspecified'}`
     : '';
 
@@ -8,9 +9,9 @@ export async function generateQuestions({ apiKey, skill, userInput, orgConfig })
 The user has provided this initial input:
 "${userInput}"
 
-${orgBlock}
+${orgSummary}
 
-Generate 3–5 targeted clarifying questions that would meaningfully improve the quality of the output. 
+Generate 3–5 targeted clarifying questions that would meaningfully improve the quality of the output.
 
 Rules:
 - Only ask questions whose answers would actually change the output
@@ -19,7 +20,7 @@ Rules:
 - Do not ask for information already provided
 - Order by importance (most impactful first)
 
-Respond ONLY with a valid JSON array of question strings. No preamble, no explanation, no markdown. Example format:
+Respond ONLY with a valid JSON array of question strings. No preamble, no explanation, no markdown. Example:
 ["Question one?", "Question two?", "Question three?"]`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -53,6 +54,7 @@ Respond ONLY with a valid JSON array of question strings. No preamble, no explan
   }
 }
 
+// ── Run a skill with streaming ────────────────────────────────────
 export async function runSkill({ apiKey, systemPrompt, userContent, onChunk }) {
   if (!userContent || !userContent.trim()) {
     throw new Error('No content to send. Please enter some input and try again.');
@@ -118,6 +120,7 @@ export async function runSkill({ apiKey, systemPrompt, userContent, onChunk }) {
   return fullText;
 }
 
+// ── Build prompt ──────────────────────────────────────────────────
 export function buildPrompt({ skill, userInput, orgConfig, documentContext, promptOverride, answers }) {
   let prompt = promptOverride || skill.prompt;
 
@@ -128,10 +131,11 @@ export function buildPrompt({ skill, userInput, orgConfig, documentContext, prom
 - Team size: ${orgConfig.teamSize || 'Not specified'}
 - Tech stack: ${orgConfig.stack || 'Not specified'}
 - Tools: ${orgConfig.tools || 'Not specified'}
-- Segments: ${orgConfig.segments || 'A/B/C/D'}
+${orgConfig.marketContext ? `- Market & customers: ${orgConfig.marketContext}` : ''}
 ${orgConfig.additionalContext ? `- Additional context: ${orgConfig.additionalContext}` : ''}`
     : '';
 
+  // Cap document size to prevent rate limit errors
   const MAX_CHARS = 40000;
   const truncatedDoc = documentContext && documentContext.length > MAX_CHARS
     ? documentContext.slice(0, MAX_CHARS) + '\n\n[Document truncated to fit token limit]'
@@ -141,15 +145,18 @@ ${orgConfig.additionalContext ? `- Additional context: ${orgConfig.additionalCon
     ? `Reference Documents:\n${truncatedDoc}`
     : '';
 
-  // Include Q&A context if answers were provided
+  // Q&A answers from clarifying questions step
   const answersBlock = answers && answers.length > 0
-    ? `Additional Context from User:\n${answers.map(({ question, answer }) =>
-        answer?.trim() ? `Q: ${question}\nA: ${answer}` : null
-      ).filter(Boolean).join('\n\n')}`
+    ? `Additional Context from User:\n${answers
+        .map(({ question, answer }) => answer?.trim() ? `Q: ${question}\nA: ${answer}` : null)
+        .filter(Boolean)
+        .join('\n\n')}`
     : '';
 
+  // System prompt: stable content, cached after first use
   const systemPrompt = [orgBlock, docBlock].filter(Boolean).join('\n\n');
 
+  // User content: skill instructions + input + answers
   let userContent = prompt
     .replace('{{ORG_CONTEXT}}', '')
     .replace('{{DOCUMENT_CONTEXT}}', '')
@@ -157,11 +164,11 @@ ${orgConfig.additionalContext ? `- Additional context: ${orgConfig.additionalCon
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-  // Append Q&A answers to user content so they directly inform the output
   if (answersBlock) {
     userContent = `${userContent}\n\n${answersBlock}`;
   }
 
+  // Safety fallback
   if (!userContent) {
     userContent = [orgBlock, docBlock, `Input: ${userInput || ''}`].filter(Boolean).join('\n\n');
   }

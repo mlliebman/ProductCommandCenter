@@ -7,7 +7,7 @@ export const SKILLS = [
     framework: 'Teresa Torres · Opportunity Solution Tree',
     timeSaved: '3–4 hrs → 15 min',
     color: '#065A82',
-    description: 'Extracts opportunities from user interview notes. Tags insights by customer segment so they map directly to PRDs and roadmaps.',
+    description: 'Extracts opportunities from user interview notes. Derives segments from the interview data itself.',
     inputLabel: 'Interview Notes or Transcripts',
     inputPlaceholder: 'Paste your raw interview notes, transcripts, or user research here...',
     inputType: 'textarea',
@@ -22,15 +22,18 @@ Analyze the following user interview notes and produce a structured output.
 Interview Notes:
 {{USER_INPUT}}
 
-Produce the following sections in markdown:
+Before producing output, scan the interview notes for natural groupings among interviewees — by company type, buying role, use case, competitive context, or lifecycle stage. Name and define 2–4 segments based on what the data actually shows. Do not inherit company-level segments — derive them from this interview set only.
+
+## Segments Identified in This Research
+For each segment you identified: name, defining characteristics, number of interviewees.
 
 ## Raw Insights
-For each key insight, include:
+For each key insight:
 - Pain point (with direct quote if available)
 - Desired outcome
 - Current workaround
 - Emotional signal (frustrated / neutral / delighted)
-- Customer segment affinity (A/B/C/D)
+- Segment affinity (use segments identified above)
 
 ## Opportunity Solution Tree
 
@@ -42,7 +45,7 @@ For each opportunity:
 **[Opportunity Name]**
 - Frequency: X/N interviews
 - Intensity: 🔴 High / 🟡 Medium / 🟢 Low
-- Segments: [A/B/C/D]
+- Segments: [from above]
 - Evidence: [quote or paraphrase]
 
 ### Solutions
@@ -63,7 +66,7 @@ What you still need to learn before committing to a direction.
     framework: 'Classic SWOT + Cross-Quadrant Strategy',
     timeSaved: '2–3 hrs → 10 min',
     color: '#9333EA',
-    description: 'Evidence-based SWOT with cross-quadrant strategies. Every claim must be backed by data, not opinions.',
+    description: 'Evidence-based SWOT with cross-quadrant strategies. Derives segments from the subject being analyzed.',
     inputLabel: 'Product, Company, or Initiative to Analyze',
     inputPlaceholder: 'Describe what you want to SWOT — product, initiative, or strategic decision...',
     inputType: 'textarea',
@@ -76,37 +79,35 @@ What you still need to learn before committing to a direction.
 Subject of Analysis:
 {{USER_INPUT}}
 
-Produce a rigorous SWOT in markdown. Every point must include specific evidence or data — no vague statements like "good team" or "strong brand."
+Before producing output, identify the customer segments most relevant to THIS subject — not the company overall. A SWOT of a specific product line should reflect that product's segments. A SWOT of a market entry should reflect that market's segments. Derive 2–4 segments from the subject matter itself.
+
+## Segments Relevant to This Analysis
+For each segment: name, why it's relevant to this specific subject.
+
+Produce a rigorous SWOT in markdown. Every point must include specific evidence or data — no vague statements.
 
 ## Strengths
-Each strength: **Claim** → Evidence → Strategic Implication
+Each strength: **Claim** → Evidence → Segments that benefit most
 
 ## Weaknesses
-Each weakness: **Claim** → Evidence → Strategic Implication
+Each weakness: **Claim** → Evidence → Segments most exposed
 
 ## Opportunities
-Each opportunity: **Claim** → Market signal or data → How to capitalize
+Each opportunity: **Claim** → Market signal → Segments to target first
 
 ## Threats
-Each threat: **Claim** → Evidence → Risk level (🔴/🟡/🟢)
+Each threat: **Claim** → Risk level (🔴/🟡/🟢) → Segments most at risk
 
 ## Cross-Quadrant Strategies
 
 ### Leverage (Strengths × Opportunities)
-How to use strengths to capture opportunities
-
 ### Defend (Strengths × Threats)
-How to use strengths to counter threats
-
 ### Improve (Weaknesses × Opportunities)
-How to fix weaknesses to capture opportunities
-
 ### Avoid (Weaknesses × Threats)
-Danger zones where weakness + threat = maximum risk
 
 ## Priority Actions
-| Action | Quadrant | Urgency | Owner | Due |
-|--------|----------|---------|-------|-----|`,
+| Action | Quadrant | Urgency | Segments Impacted | Owner |
+|--------|----------|---------|-------------------|-------|`,
   },
   {
     id: 'compete',
@@ -116,7 +117,7 @@ Danger zones where weakness + threat = maximum risk
     framework: 'Gibson Biddle · DHM Model',
     timeSaved: '3–4 hrs → 15 min',
     color: '#DC2626',
-    description: 'Analyzes competitors using the DHM model (Delight, Hard-to-copy, Margin-enhancing). Maps threats to customer segments with evidence.',
+    description: 'Analyzes competitors using the DHM model. Derives segments from the competitive landscape being analyzed.',
     inputLabel: 'Your Product + Competitors',
     inputPlaceholder: 'We are [describe your product]. Analyze us against: [competitor 1], [competitor 2]...',
     inputType: 'textarea',
@@ -129,7 +130,12 @@ Danger zones where weakness + threat = maximum risk
 Input:
 {{USER_INPUT}}
 
-Produce a competitive analysis in markdown. Every claim needs evidence — no opinions without data.
+Before producing output, identify the customer segments most relevant to this competitive landscape — based on how these specific competitors position, who they target, and where the real competitive battles are being fought. Derive 2–4 segments from the competitive context, not from the company overall.
+
+## Segments in This Competitive Landscape
+For each segment: name, which competitors are targeting it most aggressively, and why it matters.
+
+Every claim needs evidence — no opinions without data.
 
 ## Per-Competitor Analysis
 
@@ -139,21 +145,25 @@ For each competitor:
 **Hard-to-Copy:** What moats do they have? 🟢/🟡/🔴
 **Margin-Enhancing:** What drives their economics? 🟢/🟡/🔴
 **Evidence:** [specific data points, reviews, reports]
-**Segment Threat:** Which of our A/B/C/D segments are most at risk?
+**Segment Threat:** Which segments above are most at risk from this competitor?
 
 ## Competitive Matrix
 | Capability | Us | [Comp 1] | [Comp 2] |
 |------------|-----|----------|----------|
 
+## Segment Vulnerability Map
+| Segment | Greatest Threat | Why | Urgency |
+|---------|----------------|-----|---------|
+
 ## Where to Compete
-Segments and use cases where we have a durable advantage.
+Segments where we have a durable advantage.
 
 ## Where NOT to Compete
 Battles we will lose. Be honest.
 
 ## Gaps to Close
-| Gap | Priority | Effort | Impact on Segments |
-|-----|----------|--------|--------------------|`,
+| Gap | Priority | Effort | Segments Impacted |
+|-----|----------|--------|-------------------|`,
   },
   {
     id: 'positioning',
@@ -163,7 +173,7 @@ Battles we will lose. Be honest.
     framework: 'April Dunford · Obviously Awesome',
     timeSaved: '3 hrs → 10 min',
     color: '#E84C6A',
-    description: 'Builds positioning bottom-up from competitive alternatives to market category. Creates segment-specific messaging.',
+    description: 'Builds positioning bottom-up from competitive alternatives. Derives target segments from the product and competitive context.',
     inputLabel: 'Product / Feature + Context',
     inputPlaceholder: 'Product/feature: [describe]\nBest-fit customers: [describe]\nThey currently use: [alternatives]',
     inputType: 'textarea',
@@ -176,19 +186,21 @@ Battles we will lose. Be honest.
 Input:
 {{USER_INPUT}}
 
+Before producing output, identify the target segments for this specific product or feature — based on who would most benefit from its unique attributes and who is currently underserved by the alternatives listed. Derive 2–4 segments from the product and competitive context provided.
+
+## Target Segments for This Product
+For each segment: name, why they're the best fit, what alternative they're currently using.
+
 Work bottom-up: start from competitive alternatives, not aspirational vision statements.
 
 ## Competitive Alternatives
-What customers actually use today when they don't use us.
+What each target segment actually uses today.
 
 ## Unique Attributes
-What we do that alternatives genuinely don't or can't.
+What this product does that alternatives genuinely don't or can't.
 
-## Value
-What those unique attributes enable for customers (outcomes, not features).
-
-## Best-Fit Customers
-By segment (A/B/C/D) with specificity. "For everyone" is not an answer.
+## Value by Segment
+What the unique attributes enable for each segment specifically.
 
 ## Market Category
 Where we compete and why that frame helps us win.
@@ -201,13 +213,6 @@ For each segment: headline message, proof point, why this segment specifically.
 
 ## Elevator Pitch
 30 seconds, plain language, no jargon.
-
-## Messaging Hierarchy
-**Headline:**
-**Subhead:**
-**Proof Point 1:**
-**Proof Point 2:**
-**Proof Point 3:**
 
 ## Stress Test
 - [ ] Does it differentiate from each named alternative?
@@ -223,7 +228,7 @@ For each segment: headline message, proof point, why this segment specifically.
     framework: 'Marty Cagan · Four Risks + Vision Segments',
     timeSaved: '4–6 hrs → 15 min',
     color: '#065A82',
-    description: 'Creates a structured PRD using Cagan\'s four-risk framing with Vision Segments A/B/C/D. Outputs acceptance criteria and release phasing.',
+    description: 'Creates a structured PRD using Cagan\'s four-risk framing. Derives segments from the specific feature being specified.',
     inputLabel: 'Feature or Product to Specify',
     inputPlaceholder: 'Describe the feature or product you need to PRD. Include any known constraints, context, or customer feedback...',
     inputType: 'textarea',
@@ -235,6 +240,11 @@ For each segment: headline message, proof point, why this segment specifically.
 
 Feature/Product Request:
 {{USER_INPUT}}
+
+Before producing output, identify the customer segments relevant to THIS specific feature — based on who would use it, who has asked for it, and who benefits most. Do not inherit company-wide segments. A narrow feature may have 1–2 segments. A platform capability may have 4+. Derive only what's justified by the feature itself.
+
+## Segments for This Feature
+For each segment: name, why they're relevant to this specific feature, and their current workaround.
 
 ## Business Context
 Market research summary, business drivers, strategic fit.
@@ -252,29 +262,23 @@ Market research summary, business drivers, strategic fit.
 | Viability Risk (should we build it?) | 🟢/🟡/🔴 | | |
 
 ## Vision Segments
-
-### Segment A — Core (Committed)
-**Named customer archetype:** [specific, named persona]
-**User scenario:** [specific job-to-be-done]
-**Acceptance criteria:**
-- [ ] [specific, testable criterion]
-
-### Segment B — Adjacent (Planned)
-### Segment C — Adjacent (Planned)
-### Segment D — Exploratory
+For each identified segment:
+- **Scenario:** specific job-to-be-done for this segment
+- **Acceptance criteria:** testable criteria specific to this segment
+- **Commitment level:** Committed / Planned / Exploratory
 
 ## Segment Estimates
 | Segment | T-Shirt Size | Sprint Range | Dependencies |
 |---------|-------------|--------------|--------------|
 
 ## Release Phasing
-**Limited Release:** [who, what, why]
-**MVP:** [scope]
-**Phase 1:** [full scope]
+**Limited Release:** [which segment first and why]
+**MVP:** [scope expansion]
+**Full Release:** [all segments]
 
 ## Success Metrics
-| Metric | Baseline | Target | Timeframe | How Measured |
-|--------|----------|--------|-----------|--------------|
+| Metric | Segment | Baseline | Target | Timeframe |
+|--------|---------|----------|--------|-----------|
 
 ## Open Questions
 Things that need to be resolved before or during development.`,
@@ -287,9 +291,9 @@ Things that need to be resolved before or during development.`,
     framework: 'Melissa Perri · Outcome-Driven + Segment Phasing',
     timeSaved: '4–6 hrs → 15 min',
     color: '#059669',
-    description: 'Creates Now/Next/Later roadmaps mapped to Vision Segments. Outcome-driven, not feature-driven.',
+    description: 'Creates Now/Next/Later roadmaps. Derives segments from the OKRs and backlog provided.',
     inputLabel: 'OKRs, Backlog, and Context',
-    inputPlaceholder: 'List your OKRs, known backlog items, customer segments, and any constraints (team size, dates, dependencies)...',
+    inputPlaceholder: 'List your OKRs, known backlog items, customer context, and any constraints (team size, dates, dependencies)...',
     inputType: 'textarea',
     prompt: `You are an expert product leader building an outcome-driven roadmap using Melissa Perri's methodology.
 
@@ -300,34 +304,39 @@ Things that need to be resolved before or during development.`,
 Input — OKRs, backlog, constraints:
 {{USER_INPUT}}
 
-## Now — Segment A (Committed)
+Before producing output, identify the customer segments that emerge from the OKRs and backlog items provided. Each roadmap item should serve a specific segment — derive those segments from the work itself, not from a company-wide definition. Different items on the same roadmap may serve different, unrelated segments.
+
+## Segments Driving This Roadmap
+For each segment: name, which OKRs or backlog items are primarily driven by this segment.
+
+## Now (Committed)
 For each item:
 **[Item Name]**
-- Outcome: [what changes for the customer]
-- Named customer: [specific archetype]
+- Segment: [name the specific segment this serves]
+- Outcome: [what changes for that segment]
 - Acceptance criteria: [testable]
 - Confidence: High/Med/Low
 - Dependencies: [list]
 
-## Next — Segments B + C (Planned, being validated)
+## Next (Planned, being validated)
 Same structure as Now.
 
-## Later — Segment D (Exploratory, not committed)
-Ideas with brief rationale. No acceptance criteria yet.
+## Later (Exploratory, not committed)
+Ideas with brief rationale and target segment.
 
-## Segment Estimates
-| Item | Segment | Size | Timeline | Dependencies |
-|------|---------|------|----------|--------------|
+## Segment Coverage
+| Segment | Now | Next | Later | Rationale |
+|---------|-----|------|-------|-----------|
 
 ## What We Are NOT Doing
-Explicit exclusions with rationale. This section is as important as what's in.
+Explicit exclusions — which segments are not being served and why.
 
 ## Assumptions to Validate
-What needs to be true for this roadmap to work? How will we validate each?
+What needs to be true for this roadmap to work?
 
 ## OKR Mapping
-| OKR | Roadmap Items | Confidence |
-|-----|---------------|------------|`,
+| OKR | Roadmap Items | Segments | Confidence |
+|-----|---------------|----------|------------|`,
   },
   {
     id: 'simulate',
@@ -350,7 +359,7 @@ What needs to be true for this roadmap to work? How will we validate each?
 Proposal to pressure test:
 {{USER_INPUT}}
 
-For each stakeholder, go deep — surface the real concerns, not surface-level ones. Include hard questions they would actually ask.
+For each stakeholder, go deep — surface the real concerns, not surface-level ones.
 
 ## CTO / Engineering Lead
 **First reaction:** [honest, in-character]
@@ -365,9 +374,6 @@ For each stakeholder, go deep — surface the real concerns, not surface-level o
 **First reaction:**
 **Real concerns:** [UX debt, research gaps, usability risk]
 **Hard questions:**
-1.
-2.
-3.
 **What it takes to win them over:**
 
 ## VP Sales / Revenue
@@ -378,7 +384,7 @@ For each stakeholder, go deep — surface the real concerns, not surface-level o
 
 ## CEO / Executive
 **First reaction:**
-**Real concerns:** [strategic fit, ROI, resource allocation, board narrative]
+**Real concerns:** [strategic fit, ROI, resource allocation]
 **Hard questions:**
 **What it takes to win them over:**
 
@@ -389,11 +395,12 @@ For each stakeholder, go deep — surface the real concerns, not surface-level o
 **What it takes to win them over:**
 
 ## Top 3 Objections Across All Stakeholders
-Synthesized — the three things most likely to kill this proposal.
 
-## Segment Readiness
-| Segment | Readiness | Primary Risk | Mitigation |
-|---------|-----------|--------------|------------|`,
+## Customer Impact by Segment
+Based only on the proposal itself, identify which customer groups are most affected — positively or negatively — and how each stakeholder would frame that impact.
+
+| Customer Group | Impact | Stakeholder Most Concerned | Risk |
+|---------------|--------|---------------------------|------|`,
   },
   {
     id: 'gtm',
@@ -403,7 +410,7 @@ Synthesized — the three things most likely to kill this proposal.
     framework: 'Geoffrey Moore · Crossing the Chasm + Segment Rollout',
     timeSaved: '6–8 hrs → 30 min',
     color: '#F5A623',
-    description: 'Creates phased go-to-market plans sequenced by segment. Limited Release → MVP → Full Release.',
+    description: 'Creates phased go-to-market plans. Derives launch segments from the product, channels, and market context provided.',
     inputLabel: 'Product, Target, Channels, and Launch Date',
     inputPlaceholder: 'Product/feature: [describe]\nTarget customer: [describe]\nAvailable channels: [list]\nLaunch date: [date]\nAny constraints: [list]',
     inputType: 'textarea',
@@ -416,39 +423,41 @@ Synthesized — the three things most likely to kill this proposal.
 Launch input:
 {{USER_INPUT}}
 
-## GTM Motion
-PLG / Sales-Led / Community-Led / Partner-Led / Hybrid — and why.
+Before producing output, identify the customer segments relevant to THIS launch — based on who the product serves, what channels are available, and where the strongest demand signal exists. Derive 2–4 segments from the launch context provided. Sequence them by confidence and strategic fit, not by company size or generic tier.
 
-## Limited Release — Segment A
-**Named customers:** [specific types, not "enterprise"]
-**Channel:** [direct, specific]
-**Success criteria:** [before expanding to next phase]
+## Segments for This Launch
+For each segment: name, why they're the right beachhead or expansion target, demand signal.
+
+## GTM Motion
+PLG / Sales-Led / Community-Led / Partner-Led / Hybrid — and why for this specific product.
+
+## Segment Sequencing Rationale
+Which segment launches first and why? What's the strategic logic for the order?
+
+## Phase 1 — [Segment Name] (Limited Release)
+**Why this segment first:**
+**Named customer types:**
+**Channel:**
+**Message for this segment:**
+**Success criteria before expanding:**
 **Owner:**
 
-## MVP — Segments B + C
-**Broader customer types:**
-**Channels:**
-**Success criteria:**
+## Phase 2 — [Segment Name(s)]
+Same structure.
 
-## Full Release — Segment D
-**New markets:**
-**Scaled channels:**
-**Success criteria:**
+## Phase 3 — [Remaining Segments]
+Same structure.
 
-## Launch Sequence
-| Action | Owner | Date | Phase |
-|--------|-------|------|-------|
-
-## Sales Enablement
-For each segment: collateral needed, training required, objection handling.
+## Sales Enablement by Segment
+For each segment: collateral, objection handling, competitive talk track.
 
 ## Success Metrics by Phase
-| Metric | Limited Release | MVP | Full Release |
-|--------|-----------------|-----|--------------|
+| Metric | Phase 1 | Phase 2 | Phase 3 |
+|--------|---------|---------|---------|
 
 ## Risks & Mitigations
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|`,
+| Risk | Segment Affected | Likelihood | Impact | Mitigation |
+|------|-----------------|------------|--------|------------|`,
   },
   {
     id: 'board-deck',
@@ -458,7 +467,7 @@ For each segment: collateral needed, training required, objection handling.
     framework: 'SCR Narrative · Minto Pyramid',
     timeSaved: '6–8 hrs → 30 min',
     color: '#0891B2',
-    description: 'Creates board presentations using SCR (Situation-Complication-Resolution) narrative. Leads with the answer.',
+    description: 'Creates board presentations using SCR narrative. No segmentation — board reporting focuses on metrics, decisions, and strategic narrative.',
     inputLabel: 'Quarter, Metrics, Wins, Challenges',
     inputPlaceholder: 'Quarter: [Q]\nKey metrics: [list with actuals vs targets]\nBiggest win: [describe]\nBiggest challenge: [describe]\nDecisions needed from board: [list]',
     inputType: 'textarea',
@@ -476,7 +485,7 @@ Lead with the point. Boards don't want to discover the answer on slide 47.
 ## Executive Summary
 **Situation:** [what's true today — factual]
 **Complication:** [what's changed or at risk]
-**Resolution:** [what we're doing about it — your recommendation]
+**Resolution:** [what we're doing about it]
 
 ## Key Metrics Dashboard
 For each metric:
@@ -486,21 +495,12 @@ For each metric:
 - Trend:
 - Narrative: [why it moved, what it means]
 
-## Segment Progress
-| Segment | Status | Milestone | Impact | Risk |
-|---------|--------|-----------|--------|------|
-
 ## Product Update
 **Shipped this quarter:**
 **Coming next quarter:**
 
 ## Strategic Decisions Needed
-For each decision:
-**[Decision]**
-- Option A: [pros/cons]
-- Option B: [pros/cons]
-- Recommendation: [yours]
-- Ask: [specific ask from the board]
+For each decision: options, recommendation, specific ask from the board.
 
 ## Appendix
 Supporting detail for questions that may arise.`,
@@ -513,7 +513,7 @@ Supporting detail for questions that may arise.`,
     framework: 'Start/Stop/Continue + 4Ls',
     timeSaved: '1 hr → 10 min',
     color: '#6366F1',
-    description: 'Runs structured retrospectives. Synthesizes themes with root causes and generates action items with owners.',
+    description: 'Runs structured retrospectives with root causes and specific action items with owners. No segmentation — retros are team-internal.',
     inputLabel: 'Sprint Number + What Happened',
     inputPlaceholder: 'Sprint [N]. Describe what went well, what didn\'t, any specific incidents, team mood, and what you want to improve...',
     inputType: 'textarea',
@@ -536,10 +536,8 @@ For each theme:
 - Frequency: how often this came up
 
 ## Action Items
-For each action:
 | Action | Owner | Due Date | Priority |
 |--------|-------|----------|----------|
-[P0 = blocking, P1 = important, P2 = nice-to-have]
 
 Actions must be specific. Not "improve the deploy process" — "Jane to document deploy steps and add to runbook by [date]."
 
@@ -552,10 +550,10 @@ Actions must be specific. Not "improve the deploy process" — "Jane to document
 | Collaboration | 🟢/🟡/🔴 | ↑↓→ | |
 
 ## Kudos
-Specific recognition for team members — what they did, why it mattered.
+Specific recognition — what they did, why it mattered.
 
 ## Carry Forward
-Items from previous retros that are still open.`,
+Items from previous retros still open.`,
   },
 ];
 

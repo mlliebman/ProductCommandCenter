@@ -45,7 +45,7 @@ export default function SettingsPage() {
       {/* API Key */}
       <Section
         title="Anthropic API Key"
-        sub="Stored in sessionStorage only. Never committed to your repo. Cleared when you close the browser tab."
+        sub="Stored in localStorage. Never committed to your repo."
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FFF9EB', border: '1.5px solid var(--amber)', borderRadius: 8, marginBottom: 14, fontSize: 13 }}>
           <AlertCircle size={14} color="var(--amber)" style={{ flexShrink: 0 }} />
@@ -74,13 +74,13 @@ export default function SettingsPage() {
             {saved === 'key' ? <><Check size={13} /> Saved</> : <><Save size={13} /> Save</>}
           </button>
         </div>
-        {apiKey && <div style={{ fontSize: 12, color: '#059669', marginTop: 8, fontWeight: 600 }}>✓ API key is set for this session</div>}
+        {apiKey && <div style={{ fontSize: 12, color: '#059669', marginTop: 8, fontWeight: 600 }}>✓ API key is set</div>}
       </Section>
 
       {/* Org Config */}
       <Section
         title="Organization Context"
-        sub="Injected into every prompt via {{ORG_CONTEXT}}. When you join a new org, update these fields and all 10 skills adapt automatically."
+        sub="Injected into every prompt. The AI uses this to automatically identify and name relevant customer segments — no manual definition required."
       >
         <div className="grid-2" style={{ gap: 14, marginBottom: 14 }}>
           <div>
@@ -100,17 +100,43 @@ export default function SettingsPage() {
             <input className="input" value={orgDraft.stack} onChange={e => updateOrg('stack', e.target.value)} placeholder="React, Node.js, PostgreSQL, AWS" />
           </div>
         </div>
+
         <div style={{ marginBottom: 14 }}>
           <label className="label">Tools & Workflow Systems</label>
           <input className="input" value={orgDraft.tools} onChange={e => updateOrg('tools', e.target.value)} placeholder="JIRA, Notion, Figma, Confluence, Gong, Slack" />
         </div>
+
         <div style={{ marginBottom: 14 }}>
-          <label className="label">Segment Definitions (A/B/C/D)</label>
-          <textarea className="textarea" style={{ minHeight: 80 }} value={orgDraft.segments} onChange={e => updateOrg('segments', e.target.value)} placeholder="A = Core enterprise retained customers&#10;B = Growth mid-market accounts&#10;C = New market expansion&#10;D = Exploratory / experimental" />
+          <label className="label">Market & Customer Context</label>
+          <div style={{ fontSize: 12, color: 'var(--slate)', marginBottom: 8, lineHeight: 1.6 }}>
+            Describe your market, who buys your product, how they buy, and any known customer groupings.
+            The AI will use this — plus your input at run time — to derive the most meaningful segments for each analysis.
+            The richer this context, the more accurate the segmentation.
+          </div>
+          <textarea
+            className="textarea"
+            style={{ minHeight: 120 }}
+            value={orgDraft.marketContext}
+            onChange={e => updateOrg('marketContext', e.target.value)}
+            placeholder={`Examples of useful context:
+• We sell to mid-market and enterprise B2B companies in financial services and healthcare
+• Our buyers are CFOs and VPs of Finance; end users are finance teams
+• We compete primarily against Workday and legacy Excel workflows
+• Customers in EMEA tend to have stricter compliance requirements
+• We have a large base of SMB customers we're trying to move upmarket
+• Our fastest-growing cohort is companies switching from [Competitor X]`}
+          />
         </div>
+
         <div style={{ marginBottom: 18 }}>
-          <label className="label">Additional Context</label>
-          <textarea className="textarea" style={{ minHeight: 90 }} value={orgDraft.additionalContext} onChange={e => updateOrg('additionalContext', e.target.value)} placeholder="Company stage, industry, strategic priorities, key constraints, anything the AI should always know..." />
+          <label className="label">Additional Strategic Context</label>
+          <textarea
+            className="textarea"
+            style={{ minHeight: 90 }}
+            value={orgDraft.additionalContext}
+            onChange={e => updateOrg('additionalContext', e.target.value)}
+            placeholder="Company stage, strategic priorities, key constraints, recent pivots, board-level goals, anything the AI should always know..."
+          />
         </div>
 
         {/* Preview */}
@@ -126,7 +152,7 @@ export default function SettingsPage() {
 - Team size: ${orgDraft.teamSize || '—'}
 - Tech stack: ${orgDraft.stack || '—'}
 - Tools: ${orgDraft.tools || '—'}
-- Segments: ${orgDraft.segments || 'A/B/C/D'}
+${orgDraft.marketContext ? `- Market & customers: ${orgDraft.marketContext}` : ''}
 ${orgDraft.additionalContext ? `- Additional context: ${orgDraft.additionalContext}` : ''}`}
               </pre>
             </div>
@@ -141,7 +167,7 @@ ${orgDraft.additionalContext ? `- Additional context: ${orgDraft.additionalConte
       {/* Data */}
       <Section title="Data & Storage" sub="Everything is stored in your browser. Nothing is sent to any server other than Anthropic.">
         <div style={{ fontSize: 13, color: 'var(--slate)', lineHeight: 1.8 }}>
-          <div>• <strong>API Key</strong> — sessionStorage (cleared on tab close)</div>
+          <div>• <strong>API Key</strong> — localStorage (persists across sessions)</div>
           <div>• <strong>Org Config</strong> — localStorage (persists across sessions)</div>
           <div>• <strong>Outputs</strong> — localStorage (up to 100 outputs)</div>
           <div>• <strong>Custom Skills</strong> — localStorage</div>
