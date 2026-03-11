@@ -1,13 +1,19 @@
-import { useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useRef } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Play, RefreshCw, Download, Copy, Paperclip, X, ChevronDown, ChevronUp, AlertCircle, Check } from 'lucide-react';
+import { Play, RefreshCw, Download, Copy, Paperclip, X, ChevronDown, ChevronUp, AlertCircle, Check, MessageSquare, SkipForward } from 'lucide-react';
 import { useApp } from '../hooks/useApp.jsx';
 import { SKILLS } from '../skills/index.js';
-import { runSkill, buildPrompt } from '../utils/api.js';
+import { runSkill, buildPrompt, generateQuestions } from '../utils/api.js';
 import { exportMarkdown } from '../utils/export.js';
 
+// ── Step constants ────────────────────────────────────────────────
+const STEP_INPUT = 'input';
+const STEP_QUESTIONS = 'questions';
+const STEP_OUTPUT = 'output';
+
+// ── File Upload ───────────────────────────────────────────────────
 function FileUpload({ files, onAdd, onRemove }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef();
@@ -49,16 +55,71 @@ function FileUpload({ files, onAdd, onRemove }) {
   );
 }
 
+// ── Questions Step ────────────────────────────────────────────────
+function QuestionsPanel({ skill, questions, answers, onAnswerChange, onSubmit, onSkip, loading }) {
+  return (
+    <div className="card" style={{ borderTop: `3px solid ${skill.color}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <MessageSquare size={16} color={skill.color} />
+        <div style={{ fontWeight: 700, fontSize: 15 }}>A few quick questions</div>
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 20, lineHeight: 1.6 }}>
+        Answering these will significantly improve the output quality. Skip any that don't apply.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {questions.map((question, i) => (
+          <div key={i}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--charcoal)', display: 'block', marginBottom: 6 }}>
+              {i + 1}. {question}
+            </label>
+            <textarea
+              className="textarea"
+              style={{ minHeight: 72, fontSize: 13 }}
+              placeholder="Your answer (or leave blank to skip this question)"
+              value={answers[i]?.answer || ''}
+              onChange={e => onAnswerChange(i, e.target.value)}
+              disabled={loading}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+        <button
+          className="btn btn-primary"
+          style={{ flex: 1, justifyContent: 'center' }}
+          onClick={onSubmit}
+          disabled={loading}
+        >
+          {loading ? <><span className="streaming-dot" /> Generating…</> : <><Play size={14} /> Generate Output</>}
+        </button>
+        <button
+          className="btn btn-ghost"
+          onClick={onSkip}
+          disabled={loading}
+          title="Skip questions and generate with original input only"
+        >
+          <SkipForward size={14} /> Skip
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────
 export default function RunSkill() {
   const { skillId } = useParams();
-  const navigate = useNavigate();
   const { apiKey, orgConfig, customSkills, promptOverrides, saveOutput } = useApp();
 
   const allSkills = [...SKILLS, ...customSkills];
   const skill = allSkills.find(s => s.id === skillId);
 
+  const [step, setStep] = useState(STEP_INPUT);
   const [userInput, setUserInput] = useState('');
   const [files, setFiles] = useState([]);
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState([]);
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -66,27 +127,85 @@ export default function RunSkill() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [refineInput, setRefineInput] = useState('');
   const [currentOutputId, setCurrentOutputId] = useState(null);
-  const [history, setHistory] = useState([]);
 
   if (!skill) return <div className="card"><p>Skill not found.</p></div>;
 
   const docContext = files.map(f => `### ${f.name}\n${f.content}`).join('\n\n');
   const promptOverride = promptOverrides[skillId];
 
-  const handleRun = async (isRefinement = false) => {
+  // Step 1: Generate clarifying questions
+  const handleInitialRun = async () => {
     if (!apiKey) { setError('API key required. Go to Settings.'); return; }
-    if (!userInput.trim() && !isRefinement) { setError('Please enter some input.'); return; }
+    if (!userInput.trim()) { setError('Please enter some input.'); return; }
 
     setLoading(true);
     setError('');
 
     try {
-      let systemPrompt = '';
-      let userContent = '';
+      const qs = await generateQuestions({ apiKey, skill, userInput, orgConfig });
+      if (qs && qs.length > 0) {
+        setQuestions(qs);
+        setAnswers(qs.map(q => ({ question: q, answer: '' })));
+        setStep(STEP_QUESTIONS);
+      } else {
+        // No questions generated — go straight to output
+        await handleGenerate([]);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      if (isRefinement && refineInput.trim()) {
-        // Refinement: no system prompt needed, just the refinement instruction
-        userContent = `You previously produced this output:
+  // Step 2: Generate final output with answers
+  const handleGenerate = async (answersToUse) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const { systemPrompt, userContent } = buildPrompt({
+        skill,
+        userInput,
+        orgConfig,
+        documentContext: docContext,
+        promptOverride,
+        answers: answersToUse,
+      });
+
+      const output = await runSkill({
+        apiKey,
+        systemPrompt,
+        userContent,
+        onChunk: (text) => setResult(text),
+      });
+
+      setResult(output);
+      setStep(STEP_OUTPUT);
+      const saved = saveOutput({ skillId, skillName: skill.name, userInput, result: output });
+      setCurrentOutputId(saved.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnswerChange = (index, value) => {
+    setAnswers(prev => prev.map((a, i) => i === index ? { ...a, answer: value } : a));
+  };
+
+  const handleSkipQuestions = () => handleGenerate([]);
+  const handleSubmitAnswers = () => handleGenerate(answers);
+
+  // Refinement
+  const handleRefine = async () => {
+    if (!refineInput.trim()) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const userContent = `You previously produced this output:
 
 ${result}
 
@@ -94,40 +213,30 @@ The user wants you to refine it with the following feedback:
 ${refineInput}
 
 Please produce an improved version of the full output incorporating this feedback. Maintain the same markdown structure.`;
-      } else {
-        // Normal run: use new buildPrompt which returns { systemPrompt, userContent }
-        ({ systemPrompt, userContent } = buildPrompt({
-          skill,
-          userInput,
-          orgConfig,
-          documentContext: docContext,
-          promptOverride,
-        }));
-        setHistory([]);
-      }
 
-      let fullText = '';
       const output = await runSkill({
         apiKey,
-        systemPrompt,
+        systemPrompt: '',
         userContent,
-        onChunk: (text) => {
-          fullText = text;
-          setResult(text);
-        },
+        onChunk: (text) => setResult(text),
       });
 
       setResult(output);
-      if (!isRefinement) {
-        const saved = saveOutput({ skillId, skillName: skill.name, userInput, result: output });
-        setCurrentOutputId(saved.id);
-      }
       setRefineInput('');
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStartOver = () => {
+    setStep(STEP_INPUT);
+    setResult('');
+    setQuestions([]);
+    setAnswers([]);
+    setRefineInput('');
+    setError('');
   };
 
   const handleCopy = async () => {
@@ -138,6 +247,7 @@ Please produce an improved version of the full output incorporating this feedbac
 
   return (
     <div>
+      {/* Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         <Link to="/" style={{ color: 'var(--slate)', textDecoration: 'none', fontSize: 13 }}>Dashboard</Link>
         <span style={{ color: 'var(--slate-light)' }}>›</span>
@@ -145,8 +255,9 @@ Please produce an improved version of the full output incorporating this feedbac
       </div>
 
       <div style={{ display: 'flex', gap: 24 }}>
-        {/* Left: Input panel */}
+        {/* ── Left Panel ── */}
         <div style={{ flex: '0 0 380px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
           {/* Skill header */}
           <div className="card" style={{ borderTop: `3px solid ${skill.color}` }}>
             <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: skill.color, fontWeight: 600, marginBottom: 4 }}>{skill.tag}</div>
@@ -158,133 +269,177 @@ Please produce an improved version of the full output incorporating this feedbac
             <p style={{ fontSize: 13, color: 'var(--slate)', marginTop: 10, lineHeight: 1.6 }}>{skill.description}</p>
           </div>
 
-          {/* Input */}
-          <div className="card">
-            <label className="label">{skill.inputLabel}</label>
-            <textarea
-              className="textarea"
-              style={{ minHeight: 180 }}
-              placeholder={skill.inputPlaceholder}
-              value={userInput}
-              onChange={e => setUserInput(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          {/* File upload */}
-          <div className="card">
-            <label className="label" style={{ marginBottom: 8 }}>Reference Documents (optional)</label>
-            <FileUpload
-              files={files}
-              onAdd={f => setFiles(prev => [...prev, f])}
-              onRemove={i => setFiles(prev => prev.filter((_, idx) => idx !== i))}
-            />
-          </div>
-
-          {/* Prompt preview */}
-          <div>
-            <button
-              className="btn btn-ghost btn-sm"
-              style={{ width: '100%', justifyContent: 'space-between' }}
-              onClick={() => setShowPrompt(!showPrompt)}
-            >
-              <span>View prompt template</span>
-              {showPrompt ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-            {showPrompt && (
-              <div style={{ marginTop: 8 }}>
-                <div className="prompt-block">
-                  <div className="prompt-block-header">
-                    PROMPT  {skill.tag}
-                    <Link to="/library" style={{ color: 'var(--ink)', fontSize: 11, textDecoration: 'none', fontWeight: 600 }}>Edit in Library →</Link>
-                  </div>
-                  <pre style={{ color: 'var(--teal-pale)', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, padding: 14, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {promptOverride || skill.prompt}
-                  </pre>
+          {/* Step indicator */}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '8px 0' }}>
+            {[
+              { key: STEP_INPUT, label: '1. Input' },
+              { key: STEP_QUESTIONS, label: '2. Clarify' },
+              { key: STEP_OUTPUT, label: '3. Output' },
+            ].map(({ key, label }, i, arr) => (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '3px 10px',
+                  borderRadius: 99,
+                  background: step === key ? skill.color : 'var(--divider)',
+                  color: step === key ? '#fff' : 'var(--slate)',
+                  transition: 'all 0.2s',
+                }}>
+                  {label}
                 </div>
+                {i < arr.length - 1 && <span style={{ color: 'var(--slate-light)', fontSize: 12 }}>›</span>}
               </div>
-            )}
+            ))}
           </div>
 
-          {error && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FEE2E2', borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
-              <AlertCircle size={14} /> {error}
-            </div>
-          )}
-
-          <button
-            className="btn btn-primary btn-lg"
-            style={{ width: '100%', justifyContent: 'center' }}
-            onClick={() => handleRun(false)}
-            disabled={loading || !userInput.trim()}
-          >
-            {loading ? <><span className="streaming-dot" /> Running…</> : <><Play size={15} /> Run {skill.tag}</>}
-          </button>
-        </div>
-
-        {/* Right: Output panel */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
-          {result ? (
+          {/* Input step */}
+          {step === STEP_INPUT && (
             <>
-              <div className="card" style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--divider)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>Output</div>
-                    {loading && <span className="streaming-dot" />}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-secondary btn-sm" onClick={handleCopy} disabled={loading}>
-                      {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => exportMarkdown({ skillId, skillName: skill.name, userInput, result, createdAt: new Date().toISOString() })}
-                      disabled={loading}
-                    >
-                      <Download size={12} /> Export .md
-                    </button>
-                  </div>
-                </div>
-                <div className="markdown-output">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
-                </div>
+              <div className="card">
+                <label className="label">{skill.inputLabel}</label>
+                <textarea
+                  className="textarea"
+                  style={{ minHeight: 180 }}
+                  placeholder={skill.inputPlaceholder}
+                  value={userInput}
+                  onChange={e => setUserInput(e.target.value)}
+                  disabled={loading}
+                />
               </div>
 
-              {/* Refine panel */}
-              {!loading && (
-                <div className="card" style={{ borderTop: '2px solid var(--teal)' }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: 'var(--charcoal)' }}>
-                    Refine Output
+              <div className="card">
+                <label className="label" style={{ marginBottom: 8 }}>Reference Documents (optional)</label>
+                <FileUpload
+                  files={files}
+                  onAdd={f => setFiles(prev => [...prev, f])}
+                  onRemove={i => setFiles(prev => prev.filter((_, idx) => idx !== i))}
+                />
+              </div>
+
+              <div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: '100%', justifyContent: 'space-between' }}
+                  onClick={() => setShowPrompt(!showPrompt)}
+                >
+                  <span>View prompt template</span>
+                  {showPrompt ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                {showPrompt && (
+                  <div style={{ marginTop: 8 }}>
+                    <div className="prompt-block">
+                      <div className="prompt-block-header">
+                        PROMPT {skill.tag}
+                        <Link to="/library" style={{ color: 'var(--ink)', fontSize: 11, textDecoration: 'none', fontWeight: 600 }}>Edit in Library →</Link>
+                      </div>
+                      <pre style={{ color: 'var(--teal-pale)', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, padding: 14, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {promptOverride || skill.prompt}
+                      </pre>
+                    </div>
                   </div>
-                  <textarea
-                    className="textarea"
-                    style={{ minHeight: 80, marginBottom: 10 }}
-                    placeholder="What would you like to change? e.g. 'Make the risk section more specific', 'Add a table for dependencies', 'Focus Segment A on enterprise customers'..."
-                    value={refineInput}
-                    onChange={e => setRefineInput(e.target.value)}
-                  />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleRun(true)}
-                      disabled={!refineInput.trim()}
-                    >
-                      <RefreshCw size={13} /> Refine
-                    </button>
-                    <button className="btn btn-ghost" onClick={() => { setResult(''); setRefineInput(''); }}>
-                      Start Over
-                    </button>
-                  </div>
+                )}
+              </div>
+
+              {error && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FEE2E2', borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
+                  <AlertCircle size={14} /> {error}
                 </div>
               )}
+
+              <button
+                className="btn btn-primary btn-lg"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={handleInitialRun}
+                disabled={loading || !userInput.trim()}
+              >
+                {loading
+                  ? <><span className="streaming-dot" /> Generating questions…</>
+                  : <><MessageSquare size={15} /> Continue to Clarify</>}
+              </button>
             </>
+          )}
+
+          {/* Questions step */}
+          {step === STEP_QUESTIONS && (
+            <>
+              {error && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#FEE2E2', borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
+                  <AlertCircle size={14} /> {error}
+                </div>
+              )}
+              <QuestionsPanel
+                skill={skill}
+                questions={questions}
+                answers={answers}
+                onAnswerChange={handleAnswerChange}
+                onSubmit={handleSubmitAnswers}
+                onSkip={handleSkipQuestions}
+                loading={loading}
+              />
+            </>
+          )}
+
+          {/* Output step: show refine + start over */}
+          {step === STEP_OUTPUT && !loading && (
+            <div className="card" style={{ borderTop: '2px solid var(--teal)' }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Refine Output</div>
+              <textarea
+                className="textarea"
+                style={{ minHeight: 80, marginBottom: 10 }}
+                placeholder="What would you like to change?"
+                value={refineInput}
+                onChange={e => setRefineInput(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" onClick={handleRefine} disabled={!refineInput.trim()}>
+                  <RefreshCw size={13} /> Refine
+                </button>
+                <button className="btn btn-ghost" onClick={handleStartOver}>
+                  Start Over
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Right Panel: Output ── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+          {result ? (
+            <div className="card" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--divider)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>Output</div>
+                  {loading && <span className="streaming-dot" />}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={handleCopy} disabled={loading}>
+                    {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => exportMarkdown({ skillId, skillName: skill.name, userInput, result, createdAt: new Date().toISOString() })}
+                    disabled={loading}
+                  >
+                    <Download size={12} /> Export .md
+                  </button>
+                </div>
+              </div>
+              <div className="markdown-output">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
+              </div>
+            </div>
           ) : (
             <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div className="empty-state">
                 <div style={{ fontSize: 32, marginBottom: 12 }}>⚡</div>
                 <h3>{skill.name}</h3>
                 <p style={{ maxWidth: 320, margin: '0 auto' }}>
-                  Fill in the input on the left and click Run. Output streams here in real time.
+                  {step === STEP_INPUT
+                    ? 'Fill in your input and click Continue. You\'ll answer a few quick questions before the output generates.'
+                    : step === STEP_QUESTIONS
+                    ? 'Answer the questions on the left, then click Generate Output.'
+                    : 'Output streams here in real time.'}
                 </p>
                 <div style={{ marginTop: 16, fontSize: 12, color: 'var(--slate-light)' }}>
                   {skill.timeSaved} per use

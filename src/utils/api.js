@@ -1,5 +1,59 @@
+export async function generateQuestions({ apiKey, skill, userInput, orgConfig }) {
+  const orgBlock = orgConfig?.companyName
+    ? `Organization: ${orgConfig.companyName}, Product: ${orgConfig.productName || 'unspecified'}`
+    : '';
+
+  const prompt = `You are a product management expert running the "${skill.name}" skill (${skill.framework}).
+
+The user has provided this initial input:
+"${userInput}"
+
+${orgBlock}
+
+Generate 3–5 targeted clarifying questions that would meaningfully improve the quality of the output. 
+
+Rules:
+- Only ask questions whose answers would actually change the output
+- Make questions specific to THIS input, not generic
+- Each question should be answerable in 1–3 sentences
+- Do not ask for information already provided
+- Order by importance (most impactful first)
+
+Respond ONLY with a valid JSON array of question strings. No preamble, no explanation, no markdown. Example format:
+["Question one?", "Question two?", "Question three?"]`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 512,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `API error ${response.status}`);
+  }
+
+  const data = await response.json();
+  const raw = data?.content?.[0]?.text?.trim() || '[]';
+
+  try {
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return [];
+  }
+}
+
 export async function runSkill({ apiKey, systemPrompt, userContent, onChunk }) {
-  // Guard: userContent must never be empty
   if (!userContent || !userContent.trim()) {
     throw new Error('No content to send. Please enter some input and try again.');
   }
@@ -11,7 +65,6 @@ export async function runSkill({ apiKey, systemPrompt, userContent, onChunk }) {
     messages: [{ role: 'user', content: userContent.trim() }],
   };
 
-  // Only add system prompt if it has actual content
   if (systemPrompt && systemPrompt.trim()) {
     body.system = [
       {
@@ -65,7 +118,7 @@ export async function runSkill({ apiKey, systemPrompt, userContent, onChunk }) {
   return fullText;
 }
 
-export function buildPrompt({ skill, userInput, orgConfig, documentContext, promptOverride }) {
+export function buildPrompt({ skill, userInput, orgConfig, documentContext, promptOverride, answers }) {
   let prompt = promptOverride || skill.prompt;
 
   const orgBlock = orgConfig?.companyName
@@ -79,8 +132,7 @@ export function buildPrompt({ skill, userInput, orgConfig, documentContext, prom
 ${orgConfig.additionalContext ? `- Additional context: ${orgConfig.additionalContext}` : ''}`
     : '';
 
-  // Cap document size to ~20,000 tokens (80,000 chars) to prevent rate limit errors
-  const MAX_CHARS = 80000;
+  const MAX_CHARS = 40000;
   const truncatedDoc = documentContext && documentContext.length > MAX_CHARS
     ? documentContext.slice(0, MAX_CHARS) + '\n\n[Document truncated to fit token limit]'
     : documentContext;
@@ -89,24 +141,29 @@ ${orgConfig.additionalContext ? `- Additional context: ${orgConfig.additionalCon
     ? `Reference Documents:\n${truncatedDoc}`
     : '';
 
-  // System prompt: org context + documents (stable, cached after first use)
+  // Include Q&A context if answers were provided
+  const answersBlock = answers && answers.length > 0
+    ? `Additional Context from User:\n${answers.map(({ question, answer }) =>
+        answer?.trim() ? `Q: ${question}\nA: ${answer}` : null
+      ).filter(Boolean).join('\n\n')}`
+    : '';
+
   const systemPrompt = [orgBlock, docBlock].filter(Boolean).join('\n\n');
 
-  // User content: skill instructions + user input
   let userContent = prompt
     .replace('{{ORG_CONTEXT}}', '')
     .replace('{{DOCUMENT_CONTEXT}}', '')
     .replace('{{USER_INPUT}}', userInput || '')
-    .replace(/\n{3,}/g, '\n\n') // collapse blank lines left by placeholder removal
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-  // Safety fallback: if userContent is somehow empty, rebuild it with everything
+  // Append Q&A answers to user content so they directly inform the output
+  if (answersBlock) {
+    userContent = `${userContent}\n\n${answersBlock}`;
+  }
+
   if (!userContent) {
-    userContent = [
-      orgBlock,
-      docBlock,
-      `Input: ${userInput || ''}`
-    ].filter(Boolean).join('\n\n');
+    userContent = [orgBlock, docBlock, `Input: ${userInput || ''}`].filter(Boolean).join('\n\n');
   }
 
   return { systemPrompt, userContent };
